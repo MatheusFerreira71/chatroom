@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Chat Room</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.6.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.6.0/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.6.0/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div id="chat" class="container">
+        <h1>Chat Room</h1>
+        <div class="scrollable">
+            <div v-for="message in messages" class="card">
+                <div class="card-body">
+                    <!-- nickname -->
+                    <h6 class="card-subtitle mb-2 text-muted">{{ message.nickname }}</h6>
+                    <!-- content -->
+                    <p class="card-text" v-if="message !== editingMessage">{{ message.text }}</p>
+                    <textarea v-else v-model="messageText" class="form-control mb-2"
+                        @keyup.enter="updateMessage()"></textarea>
+
+                    <div id="standardBtn" v-if="message !== editingMessage">
+                        <!-- delete -->
+                        <a @click.prevent="deleteMessage(message)" href="#"
+                            class="card-link btn btn-outline-danger">Delete</a>
+                        <!-- edit -->
+                        <a @click.prevent="editMessage(message)" href="#"
+                            class="card-link btn btn-outline-info">Edit</a>
+                    </div>
+
+                    <div id="editingBtn" v-else>
+                        <!-- update -->
+                        <a @click.prevent="updateMessage()" href="#"
+                            class="card-link btn btn-outline-success">Update</a>
+                        <!-- cancel -->
+                        <a @click.prevent="cancelEditing()" href="#" class="card-link btn btn-outline-danger">Cancel</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Messages -->
+
+
+        <hr>
+        <!-- New Message -->
+        <form v-if="!editingMessage" @submit.prevent="storeMessage">
+            <div class="form-group">
+                <label>Message:</label>
+                <textarea v-model="messageText" class="form-control" @keyup.enter="storeMessage"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Nickname:</label>
+                <input v-model="nickname" class="form-control" />
+            </div>
+            <button class="btn btn-success">Send</button>
+        </form>
+    </div>
+
+    <script type="text/javascript">
+        const firebaseConfig = {
+            apiKey: "AIzaSyDv3hkJxj7bpYDUrDb-07U_Kkqxhfyehbo",
+            authDomain: "chat-room-a1b43.firebaseapp.com",
+            databaseURL: "https://chat-room-a1b43.firebaseio.com",
+            projectId: "chat-room-a1b43",
+            storageBucket: "chat-room-a1b43.appspot.com",
+            messagingSenderId: "622379640637",
+            appId: "1:622379640637:web:7bb139533c37ee6486c754",
+            measurementId: "G-9TPB0LWQV0"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+
+        const database = firebase.database();
+        const messagesRef = database.ref('messages');
+
+        new Vue({
+            el: "#chat",
+            data: {
+                messages: [],
+                messageText: '',
+                nickname: 'Matt Smith',
+                editingMessage: null
+            },
+            methods: {
+                storeMessage() {
+                    messagesRef.push({ text: this.messageText, nickname: this.nickname });
+                    this.messageText = '';
+                },
+                deleteMessage(message) {
+                    messagesRef.child(message.id).remove();
+                },
+                editMessage(message) {
+                    this.editingMessage = message;
+                    this.messageText = message.text;
+                },
+                cancelEditing() {
+                    this.editingMessage = null;
+                    this.messageText = '';
+                },
+                updateMessage() {
+                    messagesRef.child(this.editingMessage.id).update({ text: this.messageText });
+                    this.cancelEditing();
+                }
+            },
+            created() {
+                messagesRef.on('child_added', snapshot => this.messages.push({ ...snapshot.val(), id: snapshot.key }));
+                messagesRef.on('child_removed', snapshot => this.messages.splice(this.messages.indexOf(this.messages.find(msg => msg.id === snapshot.key)), 1));
+                messagesRef.on('child_changed', snapshot => {
+                    const updatedMessage = this.messages.find(message => message.id === snapshot.key);
+                    updatedMessage.text = snapshot.val().text;
+                });
+            }
+        });
+    </script>
+
+    <style>
+        .scrollable {
+            height: 570px;
+            overflow-y: scroll;
+            position: relative;
+        }
+    </style>
+</body>
+
+</html>
