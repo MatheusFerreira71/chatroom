@@ -9,6 +9,8 @@
     <script src="https://www.gstatic.com/firebasejs/7.6.0/firebase-analytics.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.6.0/firebase-database.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/native.toast.css">
+    <script src="js/native-toast.js"></script>
 </head>
 
 <body>
@@ -109,11 +111,33 @@
                 }
             },
             created() {
-                messagesRef.on('child_added', snapshot => this.messages.push({ ...snapshot.val(), id: snapshot.key }));
-                messagesRef.on('child_removed', snapshot => this.messages.splice(this.messages.indexOf(this.messages.find(msg => msg.id === snapshot.key)), 1));
+                messagesRef.on('child_added', snapshot => {
+                    this.messages.push({ ...snapshot.val(), id: snapshot.key });
+                    if (snapshot.val().nickname !== this.nickname) {
+                        nativeToast({
+                            message: `New message by ${snapshot.val().nickname}`,
+                            type: 'success'
+                        });
+                    }
+                });
+                messagesRef.on('child_removed', snapshot => {
+                    this.messages.splice(this.messages.indexOf(this.messages.find(msg => msg.id === snapshot.key)), 1);
+                    if (snapshot.val().nickname !== this.nickname) {
+                        nativeToast({
+                            message: `Message deleted by ${snapshot.val().nickname}`,
+                            type: 'warning'
+                        });
+                    }
+                });
                 messagesRef.on('child_changed', snapshot => {
                     const updatedMessage = this.messages.find(message => message.id === snapshot.key);
                     updatedMessage.text = snapshot.val().text;
+                    if (snapshot.val().nickname !== this.nickname) {
+                        nativeToast({
+                            message: `Message updated by ${snapshot.val().nickname}`,
+                            type: 'info'
+                        });
+                    }
                 });
             }
         });
